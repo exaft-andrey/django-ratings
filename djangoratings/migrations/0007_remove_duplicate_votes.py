@@ -16,8 +16,7 @@ class Migration(SchemaMigration):
                                    object_id=vote.object_id, 
                                    key=vote.key, 
                                    user=vote.user, 
-                                   ip_address=vote.ip_address, 
-                                   score=vote.score).count() > 1:
+                                   ip_address=vote.ip_address).count() > 1:
                 vote.delete()
 
 
