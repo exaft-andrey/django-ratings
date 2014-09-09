@@ -1,4 +1,5 @@
 from django.db.models import IntegerField, PositiveIntegerField
+from django.db import IntegrityError
 from django.conf import settings
 
 import forms
@@ -176,7 +177,8 @@ class RatingManager(object):
             kwargs['cookie'] = cookie
 
         try:
-            rating, created = Vote.objects.get(**kwargs), False
+            get_kwargs = kwargs.copy()
+            rating, created = Vote.objects.get(**get_kwargs), False
         except Vote.DoesNotExist:
             if delete:
                 raise CannotDeleteVote("attempt to find and delete your vote for %s is failed" % (self.field.name,))
@@ -194,8 +196,13 @@ class RatingManager(object):
                 # record with specified cookie was not found ...
                 cookie = defaults['cookie'] # ... thus we need to replace old cookie (if presented) with new one
                 kwargs.pop('cookie__isnull', '') # ... and remove 'cookie__isnull' (if presented) from .create()'s **kwargs
-            rating, created = Vote.objects.create(**kwargs), True
-            
+            try:
+                rating, created = Vote.objects.create(**kwargs), True
+            except IntegrityError:
+                # Fix race condition where another thread created the vote before we had a chance to
+                # If this fails, then let the exception go because something really weird is going on.
+                rating, created = Vote.objects.get(**get_kwargs), False
+
         has_changed = False
         if not created:
             if self.field.can_change_vote:
