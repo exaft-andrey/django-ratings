@@ -1,7 +1,7 @@
 import os.path
 import warnings
 
-__version__ = (0, 3, 11)
+__version__ = (0, 3, 12)
 
 def _get_git_revision(path):
     revision_file = os.path.join(path, 'refs', 'heads', 'master')

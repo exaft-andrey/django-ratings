@@ -127,7 +127,18 @@ class RatingManager(object):
     
     def get_iterable_range(self):
         return range(1, self.field.range) #started from 1, because 0 is equal to delete
-        
+
+    def disable_auto_now(self, instance):
+        self.disabled_auto_now_fields = []
+        for field in instance._meta.fields:
+            if getattr(field, 'auto_now', False):
+                self.disabled_auto_now_fields.append(field)
+                field.auto_now = False
+
+    def reenable_auto_now(self, instance):
+        for field in self.disabled_auto_now_fields:
+            field.auto_now = True
+
     def add(self, score, user, ip_address, cookies={}, commit=True):
         """add(score, user, ip_address)
         
@@ -224,7 +235,11 @@ class RatingManager(object):
             if not delete:
                 self.score += rating.score
             if commit:
+                if self.field.disable_auto_now:
+                    self.disable_auto_now(self.instance)
                 self.instance.save()
+                if self.field.disable_auto_now:
+                    self.reenable_auto_now(self.instance)
             #setattr(self.instance, self.field.name, Rating(score=self.score, votes=self.votes))
             
             defaults = dict(
@@ -307,7 +322,11 @@ class RatingManager(object):
         self.score = obj_score
         self.votes = obj_votes
         if commit:
+            if self.field.disable_auto_now:
+                self.disable_auto_now(self.instance)
             self.instance.save()
+            if self.field.disable_auto_now:
+                self.reenable_auto_now(self.instance)
 
 class RatingCreator(object):
     def __init__(self, field):
@@ -341,6 +360,7 @@ class RatingField(IntegerField):
         self.allow_anonymous = kwargs.pop('allow_anonymous', False)
         self.use_cookies = kwargs.pop('use_cookies', False)
         self.allow_delete = kwargs.pop('allow_delete', False)
+        self.disable_auto_now = kwargs.pop('disable_auto_now', False)
         kwargs['editable'] = False
         kwargs['default'] = 0
         kwargs['blank'] = True
