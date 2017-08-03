@@ -3,7 +3,7 @@ from django.conf import settings
 
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 try:
     from django.utils.timezone import now
@@ -25,7 +25,7 @@ class Vote(models.Model):
 
     objects         = VoteManager()
 
-    content_object  = generic.GenericForeignKey()
+    content_object  = GenericForeignKey()
 
     class Meta:
         unique_together = (('content_type', 'object_id', 'key', 'user', 'ip_address'))
